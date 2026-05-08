@@ -10,10 +10,14 @@ const addTaskBtn = document.getElementById("addTaskBtn");
 const taskList = document.getElementById("taskList");
 
 const filterButtons = document.querySelectorAll(".filters button");
+const searchInput = document.getElementById("searchInput");
+const searchBtn = document.getElementById("searchBtn");
 
 const totalTasksEl = document.querySelectorAll(".card p")[0];
 const completedTasksEl = document.querySelectorAll(".card p")[1];
 const urgentTasksEl = document.querySelectorAll(".card p")[2];
+
+let searchQuery = "";
 
 // ---------- ESTADO ----------
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
@@ -95,12 +99,20 @@ function renderTasks() {
         return priorities[a.priority] - priorities[b.priority];
     });
 
+    // ---------- BUSQUEDA ----------
+    if (searchQuery !== "") {
+        filteredTasks = filteredTasks.filter(task =>
+            task.text.toLowerCase().includes(searchQuery)
+        );
+    }
+
     // ---------- SI NO HAY TAREAS ----------
     if (filteredTasks.length === 0) {
 
         taskList.innerHTML = `
             <div class="empty-message">
                 <h2>📭 No hay tareas</h2>
+                <p>No se encontraron tareas con ese filtro o búsqueda.</p>
             </div>
         `;
 
@@ -112,7 +124,7 @@ function renderTasks() {
 
         const taskCard = document.createElement("div");
 
-        taskCard.classList.add("task-card");
+        taskCard.classList.add("task-item");
 
         if (task.completed) {
             taskCard.classList.add("completed");
@@ -158,10 +170,27 @@ function renderTasks() {
                     ${task.completed ? "↩️" : "✅"}
                 </button>
 
+                <button class="edit-btn">
+                    ✏️
+                </button>
+
                 <button class="delete-btn">
                     🗑️
                 </button>
 
+            </div>
+
+            <div class="edit-panel">
+                <input class="edit-input" type="text" value="${task.text}">
+                <select class="edit-priority">
+                    <option value="Alta" ${task.priority === "Alta" ? "selected" : ""}>Alta</option>
+                    <option value="Media" ${task.priority === "Media" ? "selected" : ""}>Media</option>
+                    <option value="Baja" ${task.priority === "Baja" ? "selected" : ""}>Baja</option>
+                </select>
+                <div class="edit-actions">
+                    <button class="save-btn">Guardar</button>
+                    <button class="cancel-btn">Cancelar</button>
+                </div>
             </div>
         
         `;
@@ -174,9 +203,36 @@ function renderTasks() {
         });
 
         const deleteBtn = taskCard.querySelector(".delete-btn");
+        const editBtn = taskCard.querySelector(".edit-btn");
+        const editPanel = taskCard.querySelector(".edit-panel");
+        const editInput = taskCard.querySelector(".edit-input");
+        const editPrioritySelect = taskCard.querySelector(".edit-priority");
+        const saveBtn = taskCard.querySelector(".save-btn");
+        const cancelBtn = taskCard.querySelector(".cancel-btn");
 
         deleteBtn.addEventListener("click", () => {
             deleteTask(task.id);
+        });
+
+        editBtn.addEventListener("click", () => {
+            editPanel.classList.toggle("visible");
+            editInput.focus();
+        });
+
+        saveBtn.addEventListener("click", () => {
+            const newText = editInput.value.trim();
+            const newPriority = editPrioritySelect.value;
+
+            if (newText === "") {
+                showToast("⚠️ La tarea no puede estar vacía");
+                return;
+            }
+
+            editTask(task.id, newText, newPriority);
+        });
+
+        cancelBtn.addEventListener("click", () => {
+            editPanel.classList.remove("visible");
         });
 
         taskList.appendChild(taskCard);
@@ -237,6 +293,27 @@ function deleteTask(id) {
 }
 
 // ===============================
+// EDITAR TAREA
+// ===============================
+function editTask(id, text, priority) {
+    tasks = tasks.map(task => {
+        if (task.id === id) {
+            return {
+                ...task,
+                text,
+                priority
+            };
+        }
+        return task;
+    });
+
+    saveTasks();
+    renderTasks();
+    updateDashboard();
+    showToast("✏️ Tarea actualizada");
+}
+
+// ===============================
 // FILTROS
 // ===============================
 filterButtons.forEach(button => {
@@ -245,17 +322,34 @@ filterButtons.forEach(button => {
 
         // quitar activos
         filterButtons.forEach(btn => {
-            btn.classList.remove("active-filter");
+            btn.classList.remove("active");
         });
 
         // activar actual
-        button.classList.add("active-filter");
+        button.classList.add("active");
 
         currentFilter = button.textContent;
 
         renderTasks();
     });
 
+});
+
+searchInput.addEventListener("input", (e) => {
+    searchQuery = e.target.value.trim().toLowerCase();
+    renderTasks();
+});
+
+searchBtn.addEventListener("click", () => {
+    searchQuery = searchInput.value.trim().toLowerCase();
+    renderTasks();
+});
+
+searchInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        searchBtn.click();
+    }
 });
 
 // ===============================
@@ -376,36 +470,6 @@ function playClickSound() {
 
 document.addEventListener("click", () => {
     playClickSound();
-});
-
-// ===============================
-// BUSCADOR DINÁMICO (SE CREA SOLO)
-// ===============================
-const searchInput = document.createElement("input");
-
-searchInput.placeholder = "🔍 Buscar tareas...";
-
-searchInput.classList.add("search-input");
-
-document.querySelector("main")
-    .insertBefore(searchInput, document.querySelector(".filters"));
-
-searchInput.addEventListener("input", (e) => {
-
-    const value = e.target.value.toLowerCase();
-
-    const cards = document.querySelectorAll(".task-card");
-
-    cards.forEach(card => {
-
-        const text = card.innerText.toLowerCase();
-
-        if (text.includes(value)) {
-            card.style.display = "flex";
-        } else {
-            card.style.display = "none";
-        }
-    });
 });
 
 // ===============================
