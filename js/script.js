@@ -454,3 +454,36 @@ setTimeout(() => {
     showToast("👋 Bienvenido al Task Manager");
 
 }, 1000);
+// =========================
+// DARK MODE
+// =========================
+
+const themeToggle = document.getElementById("themeToggle");
+
+// Verificar tema guardado
+if(localStorage.getItem("theme") === "dark"){
+
+    document.body.classList.add("dark-mode");
+    themeToggle.textContent = "☀️";
+
+}
+
+// Evento click
+themeToggle.addEventListener("click", () => {
+
+    document.body.classList.toggle("dark-mode");
+
+    // Guardar tema
+    if(document.body.classList.contains("dark-mode")){
+
+        localStorage.setItem("theme", "dark");
+        themeToggle.textContent = "☀️";
+
+    }else{
+
+        localStorage.setItem("theme", "light");
+        themeToggle.textContent = "🌙";
+
+    }
+
+});
